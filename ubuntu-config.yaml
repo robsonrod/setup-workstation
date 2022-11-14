@@ -1,0 +1,263 @@
+- name: Ubuntu Configuration
+  hosts: localhost
+  connection: local
+
+  vars:
+    ansible_command_timeout: 120
+    fonts:
+      - { url: "https://github.com/tonsky/FiraCode/releases/download/6.2/Fira_Code_v6.2.zip", name: "FiraCode" }
+      - { url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/Iosevka.zip", name: "Iosevka" }
+      - { url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/JetBrainsMono.zip", name: "JetBrainsMono" }
+      - { url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/Ubuntu.zip", name: "Ubuntu" }
+      - { url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v2.2.2/RobotoMono.zip", name: "RobotoMono" }
+
+  tasks:
+    - name: Installing apps
+      become: true
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        install_recommends: true
+        state: present
+      loop:
+        - xorg
+        - software-properties-common
+        - build-essential
+        - arc-theme
+        - manpages-dev
+        - binutils
+        - lsb-core
+        - keyutils
+        - gnupg2
+        - gnupg-agent
+        - openssh-client
+        - libc6-dev-i386
+        - linux-libc-dev
+        - python3
+        - python3-pip
+        - python3-apt
+        - cmake
+        - libffi-dev
+        - libssl-dev
+        - zlib1g-dev
+        - libbz2-dev
+        - libsqlite3-dev
+        - libreadline-dev
+        - libncurses5-dev
+        - sqlite3
+        - neovim
+        - uuid-dev
+        - rofi
+        - xclip
+        - dunst
+        - picom
+        - feh
+        - ranger
+        - x11-utils
+        - x11-xserver-utils
+        - build-essential
+        - clang
+        - bear
+        - cmake
+        - stow
+        - scrot
+        - bash-completion
+        - wget
+        - curl
+        - neovim
+        - zip
+        - unzip
+        - p7zip-full
+        - xz-utils
+        - git
+        - exa
+        - ripgrep
+        - zoxide
+        - fzf
+        - tmux
+        - terminator
+        - bat
+        - xautolock
+        - i3
+        - i3lock
+        - alacritty
+        - imagemagick
+        - firefox
+        - inotify-tools
+        - zathura
+        - virtualbox
+        - emacs28
+
+    - name: Installing starship
+      block:
+        - name: Check if starship exists
+          ansible.builtin.command: "which starship"
+          register: starship
+          ignore_errors: true
+          changed_when: false
+        - name: Get starship install script
+          ansible.builtin.get_url:
+            url: https://starship.rs/install.sh
+            dest: /tmp/starship_install.sh
+            mode: "0755"
+          when: starship is failed
+        - name: Install starship
+          ansible.builtin.shell:
+            cmd: /tmp/starship_install.sh --yes
+            executable: /bin/sh
+          become: true
+          when: starship is failed
+
+    - name: Installing fonts
+      block:
+        - name: Font exists
+          ansible.builtin.command: "test -d /home/{{ ansible_user_id }}/.local/share/fonts/"
+          register: hack_exists
+          ignore_errors: true
+          changed_when: false
+        - name: Create fonts directory if it does not exist
+          ansible.builtin.file:
+            path: "/home/{{ ansible_user_id }}/.local/share/fonts/{{ item.name }}"
+            state: directory
+            mode: "0755"
+          loop: "{{ fonts }}"
+          when: hack_exists is failed
+        - name: Font exists
+          ansible.builtin.stat:
+            path: "/home/{{ ansible_user_id }}/.local/share/fonts/JetBrainsMono/JetBrains*Mono*Regular*Nerd*Font*Complete.ttf"
+          register: firacode_exists
+        - name: Installing fonts
+          ansible.builtin.unarchive:
+            src: "{{ item.url }}"
+            dest: "/home/{{ ansible_user_id }}/.local/share/fonts/{{ item.name }}"
+            remote_src: true
+            keep_newer: true
+          loop: "{{ fonts }}"
+          when: (firacode_exists.stat.isreg is defined) and (firacode_exists.stat.isreg)
+
+    - name: Installing theme
+      block:
+        - name: Icons folder exists
+          ansible.builtin.command: "test -d /home/{{ ansible_user_id }}/.local/share/icons/"
+          register: icons_exists
+          ignore_errors: true
+          changed_when: icons_exists is failed
+        - name: Create icons directory if it does not exist
+          ansible.builtin.file:
+            path: "/home/{{ ansible_user_id }}/.local/share/icons"
+            state: directory
+            mode: "0755"
+          when: icons_exists is failed
+        - name: Get papirus theme
+          ansible.builtin.get_url:
+            url: https://git.io/papirus-icon-theme-install
+            dest: /tmp/papirus-icon-theme-install
+            mode: "0755"
+        - name: Install papirus theme
+          ansible.builtin.shell:
+            cmd: 'DESTDIR=/home/{{ ansible_user_id }}/.local/share/icons /tmp/papirus-icon-theme-install'
+            executable: /bin/sh
+          when: icons_exists is failed
+
+    - name: Installing neovim plugins
+      block:
+        - name: Check if vim plugins dir exists
+          ansible.builtin.command: test -d /home/{{ ansible_user_id }}/.config/nvim/autoload
+          register: vim_exists
+          ignore_errors: true
+          changed_when: vim_exists is failed
+        - name: Create a directory if it does not exist
+          ansible.builtin.file:
+            path: /home/{{ ansible_user_id }}/.config/nvim/autoload
+            state: directory
+            mode: "0755"
+        - name: Installing vim plugins
+          ansible.builtin.shell:
+            cmd:
+              "curl -fLo /home/{{ ansible_user_id }}/.config/nvim/autoload/plug.vim --create-dirs \
+              https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
+            executable: /bin/sh
+            warn: false
+          when: vim_exists is failed
+
+    - name: Installing tmux plugins
+      block:
+        - name: Check if tmux plugins dir exists
+          ansible.builtin.command: test -d /home/{{ ansible_user_id }}/.tmux/plugins/tpm
+          register: tmux_exists
+          ignore_errors: true
+          changed_when: tmux_exists is failed
+        - name: Installing tmux plugins
+          ansible.builtin.git:
+            repo: https://github.com/tmux-plugins/tpm
+            dest: /home/{{ ansible_user_id }}/.tmux/plugins/tpm
+            version: master
+          when: tmux_exists is failed
+
+    - name: Installing asdf virtual machine
+      block:
+        - name: Check if asdf vm exists
+          ansible.builtin.command: test -d /home/{{ ansible_user_id }}/.asdf
+          register: asdf_exists
+          ignore_errors: true
+          changed_when: asdf_exists is failed
+        - name: Installing tmux plugins
+          ansible.builtin.git:
+            repo: https://github.com/asdf-vm/asdf.git
+            dest: /home/{{ ansible_user_id }}/.asdf
+            version: v0.10.2
+          when: asdf_exists is failed
+
+    - name: Installing my configuration
+      block:
+        - name: Check if my config exists
+          ansible.builtin.command: test -d /home/{{ ansible_user_id }}/dotfiles
+          register: dotfiles_exist
+          ignore_errors: true
+          changed_when: false
+        - name: Installing my config files
+          ansible.builtin.git:
+            repo: https://github.com/robsonrod/dotfiles.git
+            dest: /home/{{ ansible_user_id }}/dotfiles
+            version: 20220822-updates
+          when: dotfiles_exist is failed
+        - name: Executing install script
+          ansible.builtin.command:
+            cmd: "/home/{{ ansible_user_id }}/dotfiles/stow-dirs"
+            executable: /bin/sh
+            warn: false
+          when: false
+
+    - name: Install rust
+      block:
+        - name: Check if cargo is installed
+          ansible.builtin.stat:
+            path: "/{{ ansible_user_id }}/bin/cargo"
+          register: cargo_exists
+          ignore_errors: true
+          changed_when: false
+
+        - name: Download Installer
+          ansible.builtin.get_url:
+            url: https://sh.rustup.rs
+            dest: /tmp/sh.rustup.rs
+            mode: '0755'
+            force: 'yes'
+          tags:
+            - rust
+          when: cargo_exists is failed
+
+        - name: Install rust/cargo
+          ansible.builtin.shell:
+            cmd: /tmp/sh.rustup.rs -y
+            executable: /bin/sh
+          tags:
+            - rust
+          when: cargo_exists is failed
+
+    - name: Installing Qtile WM
+      ansible.builtin.pip:
+        name: "{{ item }}"
+        executable: pip3
+      loop:
+        - xcffib
+        - qtile
