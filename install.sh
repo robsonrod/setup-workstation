@@ -1,7 +1,6 @@
 #!/bin/env bash
 
 install_needed() {
-    sudo add-apt-repository ppa:kelleyk/emacs -y
     sudo apt-get update && sudo apt-get -qq install ansible unzip git -y 
 }
 

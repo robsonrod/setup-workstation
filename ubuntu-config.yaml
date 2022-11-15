@@ -12,6 +12,16 @@
       - { url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v2.2.2/RobotoMono.zip", name: "RobotoMono" }
 
   tasks:
+    - name: Add emacs28 repository from PPA and install its signing key on target
+      become: true
+      ansible.builtin.apt_repository:
+        repo: ppa:kelleyk/emacs
+
+    - name: Add i3gaps repository from PPA and install its signing key on target
+      become: true
+      ansible.builtin.apt_repository:
+        repo: deb http://ppa.launchpad.net/regolith-linux/release/ubuntu focal main 
+
     - name: Installing apps
       become: true
       ansible.builtin.apt:
@@ -43,6 +53,8 @@
         - libsqlite3-dev
         - libreadline-dev
         - libncurses5-dev
+        - libdbus-1-dev
+        - libsensors-dev
         - sqlite3
         - neovim
         - uuid-dev
@@ -70,6 +82,7 @@
         - xz-utils
         - git
         - exa
+        - most
         - ripgrep
         - zoxide
         - fzf
@@ -79,6 +92,7 @@
         - xautolock
         - i3
         - i3lock
+        - i3-gaps
         - alacritty
         - imagemagick
         - firefox
@@ -109,9 +123,9 @@
 
     - name: Installing fonts
       block:
-        - name: Font exists
+        - name: Fonts directory exists
           ansible.builtin.command: "test -d /home/{{ ansible_user_id }}/.local/share/fonts/"
-          register: hack_exists
+          register: font_exists
           ignore_errors: true
           changed_when: false
         - name: Create fonts directory if it does not exist
@@ -120,11 +134,12 @@
             state: directory
             mode: "0755"
           loop: "{{ fonts }}"
-          when: hack_exists is failed
-        - name: Font exists
-          ansible.builtin.stat:
-            path: "/home/{{ ansible_user_id }}/.local/share/fonts/JetBrainsMono/JetBrains*Mono*Regular*Nerd*Font*Complete.ttf"
-          register: firacode_exists
+          when: font_exists is failed
+        - name: JetBrains font exists
+          ansible.builtin.shell: "ls /home/{{ ansible_user_id }}/.local/share/fonts/JetBrainsMono/JetBrains*Mono*Regular*Nerd*"
+          register: jetbrains_exists
+          ignore_errors: true
+          changed_when: false
         - name: Installing fonts
           ansible.builtin.unarchive:
             src: "{{ item.url }}"
@@ -132,7 +147,7 @@
             remote_src: true
             keep_newer: true
           loop: "{{ fonts }}"
-          when: (firacode_exists.stat.isreg is defined) and (firacode_exists.stat.isreg)
+          when: jetbrains_exists is failed
 
     - name: Installing theme
       block:
@@ -174,7 +189,7 @@
           ansible.builtin.shell:
             cmd:
               "curl -fLo /home/{{ ansible_user_id }}/.config/nvim/autoload/plug.vim --create-dirs \
-              https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
+               https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
             executable: /bin/sh
             warn: false
           when: vim_exists is failed
@@ -218,8 +233,20 @@
           ansible.builtin.git:
             repo: https://github.com/robsonrod/dotfiles.git
             dest: /home/{{ ansible_user_id }}/dotfiles
-            version: 20220822-updates
+            version: master 
           when: dotfiles_exist is failed
+        - name: Get dracula theme update
+          ansible.builtin.unarchive:
+            src: "https://github.com/dracula/alacritty/archive/master.zip"
+            dest: "/tmp"
+            remote_src: true
+            keep_newer: true
+        - name: Install dracula theme
+          ansible.builtin.copy:
+            src: "/tmp/alacritty-master/dracula.yml"
+            dest: "/home/{{ ansible_user_id }}/dotfiles/alacritty/.config/alacritty/themes/dracula.yml"
+            force: true
+            mode: '0664'
         - name: Executing install script
           ansible.builtin.command:
             cmd: "/home/{{ ansible_user_id }}/dotfiles/stow-dirs"
@@ -230,8 +257,7 @@
     - name: Install rust
       block:
         - name: Check if cargo is installed
-          ansible.builtin.stat:
-            path: "/{{ ansible_user_id }}/bin/cargo"
+          ansible.builtin.command: "test -f /home/{{ ansible_user_id }}/.cargo/bin/cargo"
           register: cargo_exists
           ignore_errors: true
           changed_when: false
@@ -261,3 +287,5 @@
       loop:
         - xcffib
         - qtile
+        - psutil
+
