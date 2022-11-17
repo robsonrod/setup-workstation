@@ -23,7 +23,9 @@ git clone https://github.com/robsonrod/setup-workstation.git
 ````bash
 ./install.sh -f
 ````
+* **Options:**
 - - **-f** it means complete installation
+- - **-c** it means check installation(do not make any changes)
 
 ## Others 
 I have been using i3-wm with i3status-rs as my status bar. If you want to use my config, I suggest you compile and install i3status-rs following the official [instructions](https://github.com/greshake/i3status-rust)
