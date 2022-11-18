@@ -1,11 +1,6 @@
 #!/bin/env bash
 
-install_needed() {
-    sudo apt-get update && sudo apt-get -qq install ansible unzip git -y 
-}
-
 configure() {
-    install_needed
     ansible-playbook ubuntu-config.yaml --ask-become-pass $1
 }
 
