@@ -118,7 +118,7 @@
           ansible.builtin.git:
             repo: https://github.com/tmux-plugins/tpm
             dest: /home/{{ ansible_user_id }}/.tmux/plugins/tpm
-            version: master
+            version: main
           when: tmux_exists is failed
 
     - name: Installing asdf virtual machine
@@ -146,7 +146,7 @@
           ansible.builtin.git:
             repo: https://github.com/robsonrod/dotfiles.git
             dest: /home/{{ ansible_user_id }}/dotfiles
-            version: master
+            version: main
           when: dotfiles_exist is failed
         - name: Get dracula theme update
           ansible.builtin.unarchive:
