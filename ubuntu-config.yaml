@@ -34,11 +34,15 @@
       - inotify-tools
       - zathura
       - virtualbox
+      - peek
       - software-properties-common
       - build-essential
       - manpages-dev
       - binutils
+      - dirmngr
+      - gawk
       - lsb-core
+      - iputils-ping
       - keyutils
       - gnupg2
       - gnupg-agent
@@ -48,7 +52,6 @@
       - python3
       - python3-pip
       - python3-apt
-      - cmake
       - libffi-dev
       - libssl-dev
       - zlib1g-dev
@@ -63,6 +66,7 @@
       - clang
       - bear
       - cmake
+      - make
       - stow
       - bash-completion
       - wget
@@ -71,6 +75,7 @@
       - unzip
       - p7zip-full
       - xz-utils
+      - tldr
       - exa
       - most
       - ripgrep
@@ -94,6 +99,11 @@
         repo: ppa:regolith-linux/release
         codename: impish
 
+    - name: Adding Peek Repository
+      become: true
+      ansible.builtin.apt_repository:
+        repo: ppa:peek-developers/stable
+
     - name: Installing terminal applications
       become: true
       ansible.builtin.apt:
@@ -113,13 +123,13 @@
           changed_when: false
         - name: Get starship install script
           ansible.builtin.get_url:
-            url: https://starship.rs/install.sh
-            dest: /tmp/starship_install.sh
+            url: "https://starship.rs/install.sh"
+            dest: "/tmp/starship_install.sh"
             mode: "0755"
           when: starship is failed
         - name: Install starship
           ansible.builtin.shell:
-            cmd: /tmp/starship_install.sh --yes
+            cmd: "/tmp/starship_install.sh --yes"
             executable: /bin/sh
           become: true
           when: starship is failed
@@ -172,7 +182,7 @@
             mode: "0755"
         - name: Install papirus theme
           ansible.builtin.shell:
-            cmd: 'DESTDIR=/home/{{ ansible_user_id }}/.local/share/icons /tmp/papirus-icon-theme-install'
+            cmd: "DESTDIR=/home/{{ ansible_user_id }}/.local/share/icons /tmp/papirus-icon-theme-install"
             executable: /bin/sh
           when: icons_exists is failed
 
@@ -236,7 +246,7 @@
           ansible.builtin.git:
             repo: https://github.com/robsonrod/dotfiles.git
             dest: /home/{{ ansible_user_id }}/dotfiles
-            version: master 
+            version: master
           when: dotfiles_exist is failed
         - name: Get dracula theme update
           ansible.builtin.unarchive:
@@ -256,13 +266,61 @@
             remote_src: true
             force: true
             mode: '0664'
-          when: theme_exists is succeeded 
+          when: theme_exists is succeeded
         - name: Executing install script
           ansible.builtin.command:
             cmd: "/home/{{ ansible_user_id }}/dotfiles/stow-dirs"
             executable: /bin/sh
             warn: false
           when: false
+
+    - name: Install vscode
+      block:
+        - name: Install Microsoft Key
+          become: true
+          ansible.builtin.apt_key:
+            url: 'https://packages.microsoft.com/keys/microsoft.asc'
+            state: present
+        - name: Install VSCode Repository
+          become: true
+          ansible.builtin.apt_repository:
+            repo: 'deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main'
+            state: present
+            filename: vscode
+        - name: Install Visual Studio Code
+          become: true
+          ansible.builtin.apt:
+            name: code
+        - name: Install Virtual Studio Code Extensions
+          ansible.builtin.shell:
+            cmd: "code --install-extension {{ item }}"
+            executable: /bin/bash
+          when: true
+          loop:
+            - aaron-bond.better-comments
+            - alefragnani.Bookmarks
+            - cschlosser.doxdocgen
+            - DavidAnson.vscode-markdownlint
+            - dracula-theme.theme-dracula
+            - eamodio.gitlens
+            - golang.go
+            - Gruntfuggly.todo-tree
+            - jebbs.plantuml
+            - ms-python.isort
+            - ms-python.python
+            - ms-vscode.cpptools
+            - naumovs.color-highlight
+            - PKief.material-icon-theme
+            - redhat.ansible
+            - redhat.vscode-yaml
+            - RoscoP.ActiveFileInStatusBar
+            - rust-lang.rust-analyzer
+            - ryu1kn.text-marker
+            - Shan.code-settings-sync
+            - tomoki1207.pdf
+            - vscodevim.vim
+            - yzane.markdown-pdf
+            - yzhang.markdown-all-in-one
 
     - name: Installing rust
       block:
@@ -274,10 +332,10 @@
 
         - name: Download Installer
           ansible.builtin.get_url:
-            url: https://sh.rustup.rs
-            dest: /tmp/sh.rustup.rs
-            mode: '0755'
-            force: 'yes'
+            url: "https://sh.rustup.rs"
+            dest: "/tmp/sh.rustup.rs"
+            mode: "0755"
+            force: "yes"
           tags:
             - rust
           when: cargo_exists is failed
@@ -298,4 +356,56 @@
         - xcffib
         - qtile
         - psutil
+
+    - name: Install docker
+      block:
+        - name: Install Docker Key
+          become: true
+          ansible.builtin.apt_key:
+            url: "https://download.docker.com/linux/ubuntu/gpg"
+            state: present
+        - name: Install Docker Repository
+          become: true
+          ansible.builtin.apt_repository:
+            repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            state: present
+            filename: docker-ce
+        - name: Install Docker
+          become: true
+          ansible.builtin.apt:
+            name: docker-ce
+        - name: Adding existing user to group Docker
+          become: true
+          ansible.builtin.user:
+            name: "{{ ansible_user_id }}"
+            groups: docker
+            append: true
+
+    - name: Install Docker-Compose
+      block:
+        - name: Get docker-compose
+          become: true
+          ansible.builtin.get_url:
+            url: "https://github.com/docker/compose/releases/download/v2.12.2/docker-compose-linux-x86_64"
+            dest: "/usr/local/bin/docker-compose"
+            mode: "0755"
+        - name: Change file ownership, group and permissions
+          become: true
+          ansible.builtin.file:
+            path: "/usr/local/bin/docker-compose"
+            owner: root
+            group: docker
+            mode: "0755"
+        - name: Install Docker Machine Bash Completion
+          become: true
+          ansible.builtin.get_url:
+            url: "https://raw.githubusercontent.com/docker/machine/v0.16.0/contrib/completion/bash/docker-machine.bash"
+            dest: "/etc/bash_completion.d/docker-machine"
+            mode: "0755"
+        - name: Install Docker-Compose Bash Completion
+          become: true
+          ansible.builtin.get_url:
+            url: "https://raw.githubusercontent.com/docker/compose/1.26.2/contrib/completion/bash/docker-compose"
+            dest: "/etc/bash_completion.d/docker-compose"
+            mode: "0755"
 
