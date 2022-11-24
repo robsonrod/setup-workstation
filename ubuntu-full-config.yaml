@@ -218,7 +218,7 @@
           ansible.builtin.git:
             repo: https://github.com/tmux-plugins/tpm
             dest: /home/{{ ansible_user_id }}/.tmux/plugins/tpm
-            version: main
+            version: master
           when: tmux_exists is failed
 
     - name: Installing asdf virtual machine
