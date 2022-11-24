@@ -1,12 +1,15 @@
 #!/bin/env bash
 
 configure() {
-    ansible-playbook ubuntu-config.yaml --ask-become-pass $1
+    playbook_file=$(printf 'ubuntu-%s-config.yaml' $1)
+    echo "Selected file: $playbook_file"
+    ansible-playbook $(pwd)/${playbook_file} --ask-become-pass $2    
 }
 
 usage() {
     printf "\nUsage:\n"
     echo " -f full install and configure"
+    echo " -m minimal install and configure"
     echo " -c check configuration"
 }
 
@@ -18,11 +21,14 @@ fi
 main() {
 
     case $1 in
-        -c)
-           configure "--check"
+        -m)
+            configure "minimal"
             ;;
         -f)
-           configure
+            configure "full"
+            ;;
+        -c)
+            configure "full" "--check" 
             ;;
         -h)
             usage

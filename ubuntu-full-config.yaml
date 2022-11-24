@@ -1,6 +1,6 @@
 ---
 - name: Configure my workstation
-  hosts: localhost
+  hosts: all, localhost
   connection: local
 
   vars:

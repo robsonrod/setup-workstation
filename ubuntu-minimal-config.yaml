@@ -1,0 +1,176 @@
+---
+- name: Configure my workstation
+  hosts: all, localhost
+  connection: local
+
+  vars:
+    ansible_command_timeout: 120
+
+    apps:
+      - software-properties-common
+      - build-essential
+      - manpages-dev
+      - binutils
+      - lsb-core
+      - iputils-ping
+      - keyutils
+      - gnupg2
+      - gnupg-agent
+      - openssh-client
+      - libc6-dev-i386
+      - linux-libc-dev
+      - python3
+      - python3-pip
+      - python3-apt
+      - libffi-dev
+      - libssl-dev
+      - zlib1g-dev
+      - libbz2-dev
+      - libsqlite3-dev
+      - libreadline-dev
+      - libncurses5-dev
+      - sqlite3
+      - uuid-dev
+      - xclip
+      - ranger
+      - clang
+      - bear
+      - cmake
+      - make
+      - stow
+      - bash-completion
+      - wget
+      - curl
+      - zip
+      - unzip
+      - p7zip-full
+      - xz-utils
+      - tldr
+      - exa
+      - most
+      - ripgrep
+      - zoxide
+      - fzf
+      - tmux
+      - bat
+      - neovim
+
+  tasks:
+    - name: Installing terminal applications
+      become: true
+      ansible.builtin.apt:
+        update_cache: true
+        name: "{{ item }}"
+        install_recommends: true
+        state: present
+      loop:
+        "{{ apps }}"
+
+    - name: Installing starship
+      block:
+        - name: Check if starship exists
+          ansible.builtin.command: "which starship"
+          register: starship
+          ignore_errors: true
+          changed_when: false
+        - name: Get starship install script
+          ansible.builtin.get_url:
+            url: "https://starship.rs/install.sh"
+            dest: "/tmp/starship_install.sh"
+            mode: "0755"
+          when: starship is failed
+        - name: Install starship
+          ansible.builtin.shell:
+            cmd: "/tmp/starship_install.sh --yes"
+            executable: /bin/sh
+          become: true
+          when: starship is failed
+
+    - name: Installing neovim plugins
+      block:
+        - name: Check if vim plugins dir exists
+          ansible.builtin.command: test -d /home/{{ ansible_user_id }}/.config/nvim/autoload
+          register: vim_exists
+          ignore_errors: true
+          changed_when: vim_exists is failed
+        - name: Create a directory if it does not exist
+          ansible.builtin.file:
+            path: /home/{{ ansible_user_id }}/.config/nvim/autoload
+            state: directory
+            mode: "0755"
+        - name: Install vim plugins
+          ansible.builtin.shell:
+            cmd:
+              "curl -fLo /home/{{ ansible_user_id }}/.config/nvim/autoload/plug.vim --create-dirs \
+               https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
+            executable: /bin/sh
+            warn: false
+          when: vim_exists is failed
+
+    - name: Installing tmux plugins
+      block:
+        - name: Check if tmux plugins dir exists
+          ansible.builtin.command: test -d /home/{{ ansible_user_id }}/.tmux/plugins/tpm
+          register: tmux_exists
+          ignore_errors: true
+          changed_when: tmux_exists is failed
+        - name: Installing tmux plugins
+          ansible.builtin.git:
+            repo: https://github.com/tmux-plugins/tpm
+            dest: /home/{{ ansible_user_id }}/.tmux/plugins/tpm
+            version: master
+          when: tmux_exists is failed
+
+    - name: Installing asdf virtual machine
+      block:
+        - name: Check if asdf vm exists
+          ansible.builtin.command: test -d /home/{{ ansible_user_id }}/.asdf
+          register: asdf_exists
+          ignore_errors: true
+          changed_when: asdf_exists is failed
+        - name: Installing tmux plugins
+          ansible.builtin.git:
+            repo: https://github.com/asdf-vm/asdf.git
+            dest: /home/{{ ansible_user_id }}/.asdf
+            version: v0.10.2
+          when: asdf_exists is failed
+
+    - name: Installing my configuration
+      block:
+        - name: Check if my config exists
+          ansible.builtin.command: test -d /home/{{ ansible_user_id }}/dotfiles
+          register: dotfiles_exist
+          ignore_errors: true
+          changed_when: false
+        - name: Install my config files
+          ansible.builtin.git:
+            repo: https://github.com/robsonrod/dotfiles.git
+            dest: /home/{{ ansible_user_id }}/dotfiles
+            version: master
+          when: dotfiles_exist is failed
+        - name: Get dracula theme update
+          ansible.builtin.unarchive:
+            src: "https://github.com/dracula/alacritty/archive/master.zip"
+            dest: "/tmp"
+            remote_src: true
+            keep_newer: true
+        - name: Check if theme exists
+          ansible.builtin.command: test -f /tmp/alacritty-master/dracula.yml
+          register: theme_exists
+          ignore_errors: true
+          changed_when: false
+        - name: Install dracula theme
+          ansible.builtin.copy:
+            src: "/tmp/alacritty-master/dracula.yml"
+            dest: "/home/{{ ansible_user_id }}/dotfiles/alacritty/.config/alacritty/themes/dracula.yml"
+            remote_src: true
+            force: true
+            mode: '0664'
+          when: theme_exists is succeeded
+        - name: Executing install script
+          ansible.builtin.command:
+            cmd: "/home/{{ ansible_user_id }}/dotfiles/stow-dirs"
+            executable: /bin/sh
+            warn: false
+          when: false
+
