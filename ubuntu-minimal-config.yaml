@@ -174,4 +174,3 @@
             executable: /bin/sh
             warn: false
           when: false
-

@@ -409,4 +409,3 @@
             url: "https://raw.githubusercontent.com/docker/compose/1.26.2/contrib/completion/bash/docker-compose"
             dest: "/etc/bash_completion.d/docker-compose"
             mode: "0755"
-
