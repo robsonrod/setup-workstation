@@ -85,6 +85,7 @@
       - bat
       - neovim
       - emacs28
+      - ccache
 
   tasks:
 

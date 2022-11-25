@@ -54,6 +54,7 @@
       - tmux
       - bat
       - neovim
+      - ccache
 
   tasks:
     - name: Installing terminal applications
