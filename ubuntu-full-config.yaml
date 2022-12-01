@@ -59,6 +59,7 @@
       - libsqlite3-dev
       - libreadline-dev
       - libncurses5-dev
+      - libnotify-bin
       - sqlite3
       - uuid-dev
       - xclip
@@ -104,6 +105,13 @@
       become: true
       ansible.builtin.apt_repository:
         repo: ppa:peek-developers/stable
+
+    - name: Adding Peek Repository
+      become: true
+      ansible.builtin.apt_repository:
+        repo: ppa:mmstick76/alacritty
+        codename: impish
+      when: ansible_facts['distribution'] == "Ubuntu"
 
     - name: Installing terminal applications
       become: true
@@ -274,7 +282,7 @@
             cmd: "/home/{{ ansible_user_id }}/dotfiles/stow-dirs"
             executable: /bin/sh
             warn: false
-          when: false
+          when: true
 
     - name: Install vscode
       block:
@@ -350,7 +358,7 @@
             - rust
           when: cargo_exists is failed
 
-    - name: Install qtile and applications
+    - name: Install python applications
       ansible.builtin.pip:
         name: "{{ item }}"
         executable: pip3
@@ -358,6 +366,7 @@
         - xcffib
         - qtile
         - psutil
+        - ansible-lint
 
     - name: Install docker
       block:

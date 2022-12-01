@@ -174,4 +174,4 @@
             cmd: "/home/{{ ansible_user_id }}/dotfiles/stow-dirs"
             executable: /bin/sh
             warn: false
-          when: false
+          when: true
