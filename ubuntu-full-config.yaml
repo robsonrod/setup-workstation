@@ -16,23 +16,40 @@
       - { url: "https://github.com/FortAwesome/Font-Awesome/releases/download/6.4.0/fontawesome-free-6.4.0-web.zip", name: "AwesomeW" }
 
     apps:
-      - arc-theme
-      - rofi
-      - dunst
-      - picom
       - bspwm
       - polybar
       - sxhkd
+      - rofi
+      - dunst
+      - picom
       - feh
+      - xclip
+      - tldr
+      - exa
+      - ripgrep
+      - zoxide
+      - fzf
+      - tmux
+      - bat
+      - zathura
+      - peek
+      - flameshot
+      - stow
+      - wget
+      - curl
+      - mpv
+      - zip
+      - unzip
+      - p7zip-full
+      - xz-utils
+      - ranger
+      - arc-theme
       - x11-utils
       - x11-xserver-utils
-      - scrot
       - xautolock
       - alacritty
       - imagemagick
       - inotify-tools
-      - zathura
-      - peek
       - software-properties-common
       - build-essential
       - manpages-dev
@@ -44,28 +61,10 @@
       - gnupg2
       - gnupg-agent
       - openssh-client
-      - libc6-dev-i386
-      - linux-libc-dev
       - python3
       - python3-pip
       - uuid-dev
-      - xclip
-      - ranger
       - make
-      - stow
-      - wget
-      - curl
-      - zip
-      - unzip
-      - p7zip-full
-      - xz-utils
-      - tldr
-      - exa
-      - ripgrep
-      - zoxide
-      - fzf
-      - tmux
-      - bat
       - neovim
       - emacs28
 
@@ -196,54 +195,6 @@
             dest: /home/{{ ansible_user_id }}/.asdf
             version: v0.10.2
           when: asdf_exists is failed
-
-    - name: Install vscode
-      block:
-        - name: Install Microsoft Key
-          become: true
-          ansible.builtin.apt_key:
-            url: 'https://packages.microsoft.com/keys/microsoft.asc'
-            state: present
-        - name: Install VSCode Repository
-          become: true
-          ansible.builtin.apt_repository:
-            repo: 'deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main'
-            state: present
-            filename: vscode
-        - name: Install Visual Studio Code
-          become: true
-          ansible.builtin.apt:
-            name: code
-        - name: Install Virtual Studio Code Extensions
-          ansible.builtin.shell:
-            cmd: "code --install-extension {{ item }}"
-            executable: /bin/bash
-          when: true
-          loop:
-            - aaron-bond.better-comments
-            - alefragnani.Bookmarks
-            - cschlosser.doxdocgen
-            - DavidAnson.vscode-markdownlint
-            - dracula-theme.theme-dracula
-            - eamodio.gitlens
-            - golang.go
-            - Gruntfuggly.todo-tree
-            - jebbs.plantuml
-            - ms-python.isort
-            - ms-python.python
-            - ms-vscode.cpptools
-            - naumovs.color-highlight
-            - PKief.material-icon-theme
-            - redhat.ansible
-            - redhat.vscode-yaml
-            - RoscoP.ActiveFileInStatusBar
-            - rust-lang.rust-analyzer
-            - ryu1kn.text-marker
-            - Shan.code-settings-sync
-            - tomoki1207.pdf
-            - vscodevim.vim
-            - yzane.markdown-pdf
-            - yzhang.markdown-all-in-one
 
     - name: Installing rust
       block:
