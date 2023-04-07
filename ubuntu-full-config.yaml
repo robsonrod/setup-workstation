@@ -34,6 +34,7 @@
       - zathura
       - peek
       - flameshot
+      - flatpack
       - stow
       - wget
       - curl
@@ -47,11 +48,20 @@
       - x11-utils
       - x11-xserver-utils
       - xautolock
+      - urxvt-unicode
+      - xserver-xorg-input-libinput
+      - scrot
+      - i3lock
       - alacritty
       - imagemagick
+      - libinput-tools
       - inotify-tools
       - software-properties-common
       - build-essential
+      - mate-polkit
+      - libnotify-bin
+      - playerctl
+      - blueman
       - manpages-dev
       - binutils
       - dirmngr
@@ -66,14 +76,8 @@
       - uuid-dev
       - make
       - neovim
-      - emacs28
 
   tasks:
-
-    - name: Add emacs28 repository from PPA and install its signing key on target
-      become: true
-      ansible.builtin.apt_repository:
-        repo: ppa:kelleyk/emacs
 
     - name: Add neovim repository from PPA
       become: true
@@ -95,26 +99,6 @@
         state: present
       loop:
         "{{ apps }}"
-
-    - name: Installing starship
-      block:
-        - name: Check if starship exists
-          ansible.builtin.command: "which starship"
-          register: starship
-          ignore_errors: true
-          changed_when: false
-        - name: Get starship install script
-          ansible.builtin.get_url:
-            url: "https://starship.rs/install.sh"
-            dest: "/tmp/starship_install.sh"
-            mode: "0755"
-          when: starship is failed
-        - name: Install starship
-          ansible.builtin.shell:
-            cmd: "/tmp/starship_install.sh --yes"
-            executable: /bin/sh
-          become: true
-          when: starship is failed
 
     - name: Installing fonts
       block:
